@@ -103,6 +103,9 @@ O sistema gera um PDF com:
 
 ---
 
+## Imagem do sistema
+<img width="550" height="550" alt="preview" src="https://github.com/user-attachments/assets/fc031eb8-da00-49c7-90b8-f90a3c9d81c9" />
+
 ## 📌 Próximas melhorias planejadas
 
 - [ ] Migração para banco de dados MySQL
