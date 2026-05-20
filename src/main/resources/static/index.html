@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora de Produtos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F7F5F0; --surface: #FFFFFF; --border: #E3DDD5;
+      --border-focus: #A0896A; --text-primary: #1C1814; --text-secondary: #7A6F64;
+      --accent: #B07D4A; --accent-light: #F3EDE4; --accent-dark: #8A5E30;
+      --success-bg: #F0F7EE; --success-border: #5E9E4A; --success-text: #2D5C1E;
+      --error-bg: #FEF0F0; --error-border: #E24B4A; --error-text: #7A1F1F;
+      --shadow: 0 2px 12px rgba(28,24,20,0.08); --radius: 12px;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); min-height: 100vh; color: var(--text-primary); padding: 2rem 1rem; }
+    .container { width: 100%; max-width: 600px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 2.5rem; }
+    .header .eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem; }
+    .header h1 { font-family: 'DM Serif Display', serif; font-size: 2.2rem; font-weight: 400; line-height: 1.15; }
+    .header p { margin-top: 0.6rem; font-size: 14px; color: var(--text-secondary); font-weight: 300; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+    .card-title { font-size: 13px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 1.25rem; }
+    .field { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.25rem; }
+    .field label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+    .field input, .field select {
+      width: 100%; height: 48px; padding: 0 14px; border: 1px solid var(--border);
+      border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 15px;
+      color: var(--text-primary); background: var(--bg); outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -moz-appearance: textfield; appearance: none;
+    }
+    .field input:focus, .field select:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(176,125,74,0.12); background: #FDFCFA; }
+    .field input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .row-two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .btn { width: 100%; height: 48px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: background 0.2s, transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn:active { transform: scale(0.99); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .btn-primary:disabled { background: #C9BEB0; cursor: not-allowed; }
+    .btn-secondary { background: var(--accent-light); color: var(--accent-dark); }
+    .btn-secondary:hover { background: #EAE0D4; }
+    .btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+    .btn-outline:hover { background: var(--bg); }
+    .btn-danger { background: var(--error-bg); color: var(--error-text); border: 1px solid var(--error-border); }
+    .btn-danger:hover { background: #fde0e0; }
+    .divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
+    .carrinho-vazio { text-align: center; padding: 2rem; color: var(--text-secondary); font-size: 14px; }
+    .item-lista { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.25rem; }
+    .item { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .item-info { flex: 1; min-width: 0; }
+    .item-nome { font-size: 14px; font-weight: 500; }
+    .item-detalhe { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .item-valor { font-size: 15px; font-weight: 500; color: var(--accent-dark); white-space: nowrap; }
+    .item-remove { background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 18px; line-height: 1; padding: 4px; border-radius: 4px; transition: color 0.2s; }
+    .item-remove:hover { color: var(--error-text); }
+    .total-box { background: var(--accent-light); border: 1px solid #D4B896; border-radius: 8px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+    .total-label { font-size: 13px; color: var(--accent-dark); font-weight: 500; }
+    .total-valor { font-family: 'DM Serif Display', serif; font-size: 1.75rem; color: var(--accent-dark); }
+    .btn-group { display: flex; gap: 10px; }
+    .btn-group .btn { flex: 1; }
+    .admin-toggle { text-align: center; margin-top: 0.5rem; }
+    .admin-toggle button { background: none; border: none; font-size: 12px; color: var(--text-secondary); cursor: pointer; text-decoration: underline; font-family: 'DM Sans', sans-serif; }
+    .admin-panel { display: none; }
+    .admin-panel.visible { display: block; }
+    .senha-box { display: flex; gap: 10px; margin-bottom: 1rem; }
+    .senha-box input { flex: 1; height: 40px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--bg); outline: none; }
+    .senha-box button { height: 40px; padding: 0 16px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; white-space: nowrap; }
+    .admin-logado { display: none; }
+    .admin-logado.visible { display: block; }
+    .produto-admin-lista { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.25rem; max-height: 220px; overflow-y: auto; }
+    .produto-admin-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 13px; gap: 10px; }
+    .produto-admin-nome { font-weight: 500; flex: 1; }
+    .produto-admin-valor { color: var(--text-secondary); white-space: nowrap; }
+    .msg { font-size: 13px; padding: 10px 14px; border-radius: 8px; margin-bottom: 1rem; }
+    .msg.success { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+    .msg.error { background: var(--error-bg); color: var(--error-text); border: 1px solid var(--error-border); }
+    @media (max-width: 480px) {
+      .row-two { grid-template-columns: 1fr; }
+      .btn-group { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <p class="eyebrow">Sistema de Orçamento</p>
+    <h1>Calculadora de Produtos</h1>
+    <p>Adicione produtos à lista e calcule o valor total.</p>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Adicionar produto</p>
+    <div class="field">
+      <label for="selectProduto">Produto</label>
+      <select id="selectProduto">
+        <option value="">Carregando produtos...</option>
+      </select>
+    </div>
+    <div class="row-two">
+      <div class="field">
+        <label for="altura">Altura (m)</label>
+        <input type="number" id="altura" placeholder="Ex: 2.40" min="0.01" step="0.01" />
+      </div>
+      <div class="field">
+        <label for="largura">Largura (m)</label>
+        <input type="number" id="largura" placeholder="Ex: 3.00" min="0.01" step="0.01" />
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="adicionarItem()">+ Adicionar à lista</button>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Lista de produtos</p>
+    <div id="carrinhoLista" class="item-lista">
+      <div class="carrinho-vazio">Nenhum produto adicionado ainda.</div>
+    </div>
+    <div class="total-box" id="totalBox" style="display:none">
+      <span class="total-label">Total geral</span>
+      <span class="total-valor" id="totalValor">R$ 0,00</span>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-outline" onclick="limparCarrinho()">Limpar lista</button>
+      <button class="btn btn-secondary" onclick="baixarPDF()">⬇ Baixar PDF</button>
+    </div>
+  </div>
+
+  <div class="admin-toggle">
+    <button onclick="toggleAdmin()">Área administrativa</button>
+  </div>
+
+  <div class="admin-panel" id="adminPanel">
+    <div class="card" style="margin-top:1rem">
+      <p class="card-title">Painel admin</p>
+      <div id="adminLogin">
+        <div class="senha-box">
+          <input type="password" id="senhaInput" placeholder="Digite a senha" />
+          <button onclick="logarAdmin()">Entrar</button>
+        </div>
+        <div id="loginMsg"></div>
+      </div>
+      <div class="admin-logado" id="adminLogado">
+        <div id="adminMsg"></div>
+        <p style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:10px">Produtos cadastrados</p>
+        <div class="produto-admin-lista" id="produtoAdminLista"></div>
+        <div class="divider"></div>
+        <p style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:12px">Novo produto</p>
+        <div class="field">
+          <label>Nome do produto</label>
+          <input type="text" id="novoProdutoNome" placeholder="Ex: Porcelanato Cimento" />
+        </div>
+        <div class="field">
+          <label>Valor por m² (R$)</label>
+          <input type="number" id="novoProdutoValor" placeholder="Ex: 89.90" min="0.01" step="0.01" />
+        </div>
+        <button class="btn btn-primary" onclick="cadastrarProduto()">Cadastrar produto</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  const API = '/api';
+  const SENHA_ADMIN = 'admin123';
+  let produtos = [];
+  let carrinho = [];
+
+  async function carregarProdutos() {
+    try {
+      const res = await fetch(`${API}/produtos`);
+      produtos = await res.json();
+      const sel = document.getElementById('selectProduto');
+      sel.innerHTML = produtos.length === 0
+        ? '<option value="">Nenhum produto cadastrado</option>'
+        : '<option value="">Selecione um produto</option>' +
+          produtos.map(p => `<option value="${p.id}" data-valor="${p.valorM2}">${p.nome} — R$ ${p.valorM2.toFixed(2)}/m²</option>`).join('');
+    } catch {
+      document.getElementById('selectProduto').innerHTML = '<option value="">Erro ao carregar produtos</option>';
+    }
+  }
+
+  function adicionarItem() {
+    const sel = document.getElementById('selectProduto');
+    const altura = parseFloat(document.getElementById('altura').value);
+    const largura = parseFloat(document.getElementById('largura').value);
+    const opt = sel.options[sel.selectedIndex];
+    if (!sel.value) return alert('Selecione um produto.');
+    if (!altura || altura <= 0) return alert('Informe a altura.');
+    if (!largura || largura <= 0) return alert('Informe a largura.');
+    const valorM2 = parseFloat(opt.dataset.valor);
+    const area = altura * largura;
+    const valorTotal = area * valorM2;
+    carrinho.push({ nome: opt.text.split(' —')[0], altura, largura, valorM2, area, valorTotal });
+    renderCarrinho();
+    document.getElementById('altura').value = '';
+    document.getElementById('largura').value = '';
+    sel.selectedIndex = 0;
+  }
+
+  function removerItem(index) {
+    carrinho.splice(index, 1);
+    renderCarrinho();
+  }
+
+  function limparCarrinho() {
+    if (carrinho.length === 0) return;
+    if (confirm('Limpar toda a lista?')) { carrinho = []; renderCarrinho(); }
+  }
+
+  function renderCarrinho() {
+    const lista = document.getElementById('carrinhoLista');
+    const totalBox = document.getElementById('totalBox');
+    if (carrinho.length === 0) {
+      lista.innerHTML = '<div class="carrinho-vazio">Nenhum produto adicionado ainda.</div>';
+      totalBox.style.display = 'none';
+      return;
+    }
+    const total = carrinho.reduce((s, i) => s + i.valorTotal, 0);
+    lista.innerHTML = carrinho.map((item, i) => `
+      <div class="item">
+        <div class="item-info">
+          <div class="item-nome">${item.nome}</div>
+          <div class="item-detalhe">${item.altura}m × ${item.largura}m = ${item.area.toFixed(2)}m² · R$ ${item.valorM2.toFixed(2)}/m²</div>
+        </div>
+        <div class="item-valor">${fmt(item.valorTotal)}</div>
+        <button class="item-remove" onclick="removerItem(${i})" title="Remover">×</button>
+      </div>`).join('');
+    document.getElementById('totalValor').textContent = fmt(total);
+    totalBox.style.display = 'flex';
+  }
+
+  function fmt(v) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+  }
+
+  function baixarPDF() {
+    if (carrinho.length === 0) return alert('Adicione pelo menos um produto.');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const total = carrinho.reduce((s, i) => s + i.valorTotal, 0);
+    const data = new Date().toLocaleDateString('pt-BR');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('Orcamento de Produtos', 20, 22);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(120);
+    doc.text(`Data: ${data}`, 20, 30);
+    doc.setTextColor(0);
+    doc.setDrawColor(200);
+    doc.line(20, 35, 190, 35);
+    let y = 44;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Produto', 20, y);
+    doc.text('Dimensoes', 90, y);
+    doc.text('m2', 135, y);
+    doc.text('Valor', 162, y);
+    y += 6;
+    doc.line(20, y, 190, y);
+    y += 8;
+    doc.setFont('helvetica', 'normal');
+    carrinho.forEach(item => {
+      doc.text(item.nome, 20, y);
+      doc.text(`${item.altura}m x ${item.largura}m`, 90, y);
+      doc.text(item.area.toFixed(2), 135, y);
+      doc.text(fmt(item.valorTotal), 155, y);
+      y += 8;
+    });
+    y += 4;
+    doc.line(20, y, 190, y);
+    y += 8;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Total Geral:', 130, y);
+    doc.text(fmt(total), 155, y);
+    doc.save(`orcamento-${data.replace(/\//g, '-')}.pdf`);
+  }
+
+  function toggleAdmin() {
+    document.getElementById('adminPanel').classList.toggle('visible');
+  }
+
+  function logarAdmin() {
+    const senha = document.getElementById('senhaInput').value;
+    const msg = document.getElementById('loginMsg');
+    if (senha === SENHA_ADMIN) {
+      document.getElementById('adminLogin').style.display = 'none';
+      document.getElementById('adminLogado').classList.add('visible');
+      carregarProdutosAdmin();
+    } else {
+      msg.innerHTML = '<div class="msg error">Senha incorreta.</div>';
+    }
+  }
+
+  async function carregarProdutosAdmin() {
+    const lista = document.getElementById('produtoAdminLista');
+    try {
+      const res = await fetch(`${API}/produtos`);
+      const prods = await res.json();
+      lista.innerHTML = prods.length === 0
+        ? '<p style="font-size:13px;color:var(--text-secondary)">Nenhum produto cadastrado.</p>'
+        : prods.map(p => `
+          <div class="produto-admin-item">
+            <span class="produto-admin-nome">${p.nome}</span>
+            <span class="produto-admin-valor">R$ ${p.valorM2.toFixed(2)}/m²</span>
+            <button class="btn btn-danger" style="width:auto;height:32px;padding:0 12px;font-size:12px" onclick="excluirProduto(${p.id})">Excluir</button>
+          </div>`).join('');
+    } catch {
+      lista.innerHTML = '<p style="font-size:13px;color:var(--error-text)">Erro ao carregar.</p>';
+    }
+  }
+
+  async function cadastrarProduto() {
+    const nome = document.getElementById('novoProdutoNome').value.trim();
+    const valorM2 = parseFloat(document.getElementById('novoProdutoValor').value);
+    const msg = document.getElementById('adminMsg');
+    if (!nome) return msg.innerHTML = '<div class="msg error">Informe o nome do produto.</div>';
+    if (!valorM2 || valorM2 <= 0) return msg.innerHTML = '<div class="msg error">Informe o valor do m2.</div>';
+    try {
+      const res = await fetch(`${API}/produtos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'senha': SENHA_ADMIN },
+        body: JSON.stringify({ nome, valorM2 })
+      });
+      if (!res.ok) throw new Error();
+      msg.innerHTML = '<div class="msg success">Produto cadastrado com sucesso!</div>';
+      document.getElementById('novoProdutoNome').value = '';
+      document.getElementById('novoProdutoValor').value = '';
+      carregarProdutosAdmin();
+      carregarProdutos();
+      setTimeout(() => msg.innerHTML = '', 3000);
+    } catch {
+      msg.innerHTML = '<div class="msg error">Erro ao cadastrar produto.</div>';
+    }
+  }
+
+  async function excluirProduto(id) {
+    if (!confirm('Excluir este produto?')) return;
+    try {
+      await fetch(`${API}/produtos/${id}`, {
+        method: 'DELETE',
+        headers: { 'senha': SENHA_ADMIN }
+      });
+      carregarProdutosAdmin();
+      carregarProdutos();
+    } catch {
+      alert('Erro ao excluir produto.');
+    }
+  }
+
+  carregarProdutos();
+</script>
+</body>
+</html>
